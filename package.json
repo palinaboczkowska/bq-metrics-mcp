@@ -1,0 +1,31 @@
+{
+  "name": "bq-metrics-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that lets AI assistants query defined business metrics in BigQuery through a small semantic layer, never free-form SQL.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "gcp-build": "npm run build",
+    "start": "node dist/http.js",
+    "dev:stdio": "tsx src/stdio.ts",
+    "dev:http": "tsx src/http.ts",
+    "generate": "tsx scripts/generate-data.ts",
+    "test": "vitest run",
+    "test:live": "LIVE_BQ=1 vitest run test/live.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "9.6.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  }
+}
