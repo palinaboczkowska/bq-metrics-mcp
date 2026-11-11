@@ -1,0 +1,17 @@
+config {
+  type: "view",
+  schema: "shop_staging",
+  description: "Order lines with net line revenue in SEK.",
+  assertions: {
+    nonNull: ["order_id", "sku", "quantity", "unit_price_sek"],
+    rowConditions: ["quantity > 0", "unit_price_sek >= 0", "discount_sek >= 0", "net_revenue_sek >= 0"]
+  }
+}
+SELECT
+  order_id,
+  sku,
+  quantity,
+  unit_price_sek,
+  discount_sek,
+  quantity * unit_price_sek - discount_sek AS net_revenue_sek
+FROM ${ref("order_lines")}

@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  database: "bq-metrics-mcp-pb",
+  schema: "shop_demo",
+  name: "orders",
+  description: "Raw orders as loaded by scripts/setup-bigquery.sh (synthetic demo data)."
+}

@@ -1,0 +1,8 @@
+config {
+  type: "assertion",
+  description: "Referential integrity: every order line belongs to an existing order. Returns offending rows."
+}
+SELECT l.order_id
+FROM ${ref("stg_order_lines")} l
+LEFT JOIN ${ref("stg_orders")} o USING (order_id)
+WHERE o.order_id IS NULL

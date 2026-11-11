@@ -1,4 +1,5 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { LAYER, LAYER_YAML } from "./semantic/metrics.js";
 import { z } from "zod";
 import { listMetrics, QuerySpec } from "./semantic/query.js";
 import type { Warehouse } from "./warehouse/types.js";
@@ -91,6 +92,58 @@ export function createServer(warehouse: Warehouse): McpServer {
         log({ tool: "top_products", error: message });
         return { ...text({ error: message }), isError: true };
       }
+    },
+  );
+
+  // ---- Semantic layer and catalog as MCP resources (read by the assistant, not executed) ----
+
+  server.registerResource(
+    "semantic-layer",
+    "semantic://metrics.yaml",
+    {
+      title: "Semantic layer",
+      description: "The metric and dimension definitions the server uses, as YAML. The single source of truth.",
+      mimeType: "application/yaml",
+    },
+    async (uri) => ({ contents: [{ uri: uri.href, mimeType: "application/yaml", text: LAYER_YAML }] }),
+  );
+
+  server.registerResource(
+    "catalog",
+    "semantic://catalog",
+    {
+      title: "Data catalog",
+      description: "Tables behind the metrics: description, grain, partitioning, clustering and lineage back to raw data.",
+      mimeType: "application/json",
+    },
+    async (uri) => ({
+      contents: [{
+        uri: uri.href,
+        mimeType: "application/json",
+        text: JSON.stringify({ sources: LAYER.sources, dimensions: LAYER.dimensions }, null, 2),
+      }],
+    }),
+  );
+
+  server.registerResource(
+    "metric",
+    new ResourceTemplate("semantic://metrics/{name}", {
+      list: async () => ({
+        resources: Object.keys(LAYER.metrics).map((name) => ({ uri: `semantic://metrics/${name}`, name, mimeType: "application/json" })),
+      }),
+    }),
+    { title: "Metric definition", description: "One metric with its definition, source table and allowed dimensions.", mimeType: "application/json" },
+    async (uri, { name }) => {
+      const m = LAYER.metrics[String(name)];
+      if (!m) throw new Error(`Unknown metric "${name}"`);
+      const source = m.source ? LAYER.sources[m.source] : undefined;
+      return {
+        contents: [{
+          uri: uri.href,
+          mimeType: "application/json",
+          text: JSON.stringify({ name, ...m, source_table: source?.table, lineage: source?.lineage }, null, 2),
+        }],
+      };
     },
   );
 

@@ -1,0 +1,11 @@
+config {
+  type: "assertion",
+  description: "Reconciliation: total revenue in fct_sales equals the raw order lines. Returns a row if they differ."
+}
+SELECT *
+FROM (
+  SELECT
+    (SELECT SUM(net_revenue_sek) FROM ${ref("fct_sales")}) AS mart,
+    (SELECT SUM(quantity * unit_price_sek - discount_sek) FROM ${ref("order_lines")}) AS raw
+)
+WHERE ABS(mart - raw) > 0.01

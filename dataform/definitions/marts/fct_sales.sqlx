@@ -1,0 +1,37 @@
+config {
+  type: "incremental",
+  description: "Sales at order-line grain, joined with order and product attributes. The table the MCP server reads.",
+  uniqueKey: ["order_id", "sku"],
+  bigquery: {
+    partitionBy: "order_date",
+    clusterBy: ["market", "channel"]
+  },
+  columns: {
+    order_date: "Order date, partition column",
+    order_id: "Order identifier",
+    market: "ISO country code",
+    channel: "Sales channel",
+    sku: "Product SKU",
+    category: "Product category",
+    quantity: "Items on the line",
+    net_revenue_sek: "quantity × unit price − discount, SEK excl. VAT"
+  },
+  assertions: {
+    nonNull: ["order_date", "order_id", "sku", "market"],
+    rowConditions: ["net_revenue_sek >= 0"]
+  }
+}
+SELECT
+  o.order_date,
+  o.order_id,
+  o.market,
+  o.channel,
+  l.sku,
+  p.category,
+  SUM(l.quantity) AS quantity,
+  SUM(l.net_revenue_sek) AS net_revenue_sek
+FROM ${ref("stg_order_lines")} l
+JOIN ${ref("stg_orders")} o USING (order_id)
+JOIN ${ref("products")} p USING (sku)
+${when(incremental(), `WHERE o.order_date > (SELECT MAX(order_date) FROM ${self()})`)}
+GROUP BY 1, 2, 3, 4, 5, 6

@@ -1,0 +1,22 @@
+config {
+  type: "view",
+  schema: "shop_staging",
+  description: "One row per order. Market and channel normalised to upper/lower case.",
+  columns: {
+    order_id: "Order identifier",
+    order_date: "Date the order was placed (UTC)",
+    market: "ISO country code of the shop, e.g. SE",
+    channel: "web, app or retail_partner"
+  },
+  assertions: {
+    uniqueKey: ["order_id"],
+    nonNull: ["order_id", "order_date", "market", "channel"],
+    rowConditions: ["channel IN ('web', 'app', 'retail_partner')"]
+  }
+}
+SELECT
+  order_id,
+  order_date,
+  UPPER(market) AS market,
+  LOWER(channel) AS channel
+FROM ${ref("orders")}

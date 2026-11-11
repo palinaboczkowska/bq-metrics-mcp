@@ -49,3 +49,23 @@ describe("MCP server", () => {
     expect(r.rows[0].value).toBeGreaterThanOrEqual(r.rows[2].value);
   });
 });
+
+describe("semantic layer as resources", () => {
+  it("lists the layer, the catalog and one resource per metric", async () => {
+    const { resources } = await client.listResources();
+    const uris = resources.map((r) => r.uri);
+    expect(uris).toContain("semantic://metrics.yaml");
+    expect(uris).toContain("semantic://catalog");
+    expect(uris).toContain("semantic://metrics/roas");
+  });
+  it("returns the catalog with partitioning and lineage", async () => {
+    const r = await client.readResource({ uri: "semantic://catalog" });
+    const cat = JSON.parse((r.contents[0] as { text: string }).text);
+    expect(cat.sources.sales.partitioned_by).toBe("order_date");
+    expect(cat.sources.sales.lineage).toContain("shop_demo.order_lines");
+  });
+  it("returns one metric definition", async () => {
+    const r = await client.readResource({ uri: "semantic://metrics/aov_sek" });
+    expect(JSON.parse((r.contents[0] as { text: string }).text).ratio).toEqual({ numerator: "revenue_sek", denominator: "orders" });
+  });
+});

@@ -1,0 +1,77 @@
+# The semantic layer. Every metric and dimension is defined once, here.
+# The MCP server only exposes what is in this file; assistants cannot write SQL.
+# Tables are built by the Dataform project in ../dataform (marts dataset).
+
+version: 1
+
+sources:
+  sales:
+    table: fct_sales
+    description: Sales at order-line grain with order and product attributes. Built by Dataform from raw orders, order lines and products.
+    grain: one row per order and SKU
+    date_column: order_date
+    partitioned_by: order_date
+    clustered_by: [market, channel]
+    lineage: [shop_demo.orders, shop_demo.order_lines, shop_demo.products]
+    dimensions:
+      market: market
+      channel: channel
+      category: category
+      sku: sku
+  ads:
+    table: fct_ad_spend
+    description: Daily paid media spend per market and ad channel.
+    grain: one row per date, market and ad channel
+    date_column: date
+    partitioned_by: date
+    clustered_by: [market, ad_channel]
+    lineage: [shop_demo.ad_spend]
+    dimensions:
+      market: market
+      ad_channel: ad_channel
+
+dimensions:
+  day: { description: Calendar day (UTC). }
+  week: { description: ISO week, labelled by its Monday. }
+  month: { description: Calendar month, labelled by its first day. }
+  market: { description: "ISO country code of the shop: SE, NO, DK, FI or DE." }
+  channel: { description: "Sales channel: web, app or retail_partner." }
+  category: { description: "Product category: lips, eyes, face, skincare or tools." }
+  sku: { description: Product SKU. }
+  ad_channel: { description: "Paid media channel: meta, google or tiktok." }
+
+metrics:
+  revenue_sek:
+    description: Net revenue in SEK, quantity × unit price minus line discounts. Excludes VAT and returns.
+    unit: SEK
+    source: sales
+    expression: SUM(net_revenue_sek)
+    dimensions: [day, week, month, market, channel, category, sku]
+  orders:
+    description: Number of distinct orders.
+    unit: count
+    source: sales
+    expression: COUNT(DISTINCT order_id)
+    dimensions: [day, week, month, market, channel, category, sku]
+  units:
+    description: Number of items sold (sum of quantity).
+    unit: count
+    source: sales
+    expression: SUM(quantity)
+    dimensions: [day, week, month, market, channel, category, sku]
+  aov_sek:
+    description: Average order value in SEK, revenue_sek / orders.
+    unit: SEK
+    ratio: { numerator: revenue_sek, denominator: orders }
+    dimensions: [day, week, month, market, channel]
+  ad_spend_sek:
+    description: Paid media spend in SEK.
+    unit: SEK
+    source: ads
+    expression: SUM(spend_sek)
+    dimensions: [day, week, month, market, ad_channel]
+  roas:
+    description: Return on ad spend, revenue_sek / ad_spend_sek, all ad channels combined.
+    unit: ratio
+    ratio: { numerator: revenue_sek, denominator: ad_spend_sek }
+    dimensions: [day, week, month, market]

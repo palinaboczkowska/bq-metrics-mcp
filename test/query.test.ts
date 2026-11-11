@@ -40,7 +40,7 @@ describe("SQL generation", () => {
     const { sql } = buildSql(spec({ metric: "roas", group_by: ["month", "market"] }), "shop_demo");
     expect(sql).toContain("SAFE_DIVIDE(n.value, d.value)");
     expect(sql).toContain("FULL OUTER JOIN d USING (month, market)");
-    expect(sql).toContain("`shop_demo.ad_spend`");
+    expect(sql).toContain("`shop_demo.fct_ad_spend`");
   });
   it("orders time series by time and rankings by value", () => {
     expect(buildSql(spec({ group_by: ["week"] }), "x").sql).toContain("ORDER BY week ASC");

@@ -1,0 +1,18 @@
+config {
+  type: "incremental",
+  description: "Daily paid media spend per market and ad channel.",
+  uniqueKey: ["date", "market", "ad_channel"],
+  bigquery: {
+    partitionBy: "date",
+    clusterBy: ["market", "ad_channel"]
+  },
+  assertions: {
+    uniqueKey: ["date", "market", "ad_channel"],
+    nonNull: ["date", "market", "ad_channel", "spend_sek"],
+    rowConditions: ["spend_sek >= 0"]
+  }
+}
+SELECT date, UPPER(market) AS market, LOWER(ad_channel) AS ad_channel, SUM(spend_sek) AS spend_sek
+FROM ${ref("ad_spend")}
+${when(incremental(), `WHERE date > (SELECT MAX(date) FROM ${self()})`)}
+GROUP BY 1, 2, 3

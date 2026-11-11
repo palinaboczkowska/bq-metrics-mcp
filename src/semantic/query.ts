@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type Dimension, type Filter, type MetricDef, getMetric, METRICS } from "./metrics.js";
+import { type Dimension, type Filter, type MetricDef, getMetric, LAYER, METRICS } from "./metrics.js";
 
 export const MAX_DAYS = 400;
 export const MAX_ROWS = 500;
@@ -46,19 +46,11 @@ export function validate(spec: QuerySpec): MetricDef {
 type FactSql = { from: string; date: string; dims: Partial<Record<Dimension, string>> };
 
 function facts(dataset: string): Record<"sales" | "ads", FactSql> {
-  const t = (name: string) => `\`${dataset}.${name}\``;
-  return {
-    sales: {
-      from: `${t("order_lines")} l JOIN ${t("orders")} o ON o.order_id = l.order_id JOIN ${t("products")} p ON p.sku = l.sku`,
-      date: "o.order_date",
-      dims: { market: "o.market", channel: "o.channel", category: "p.category", sku: "l.sku" },
-    },
-    ads: {
-      from: `${t("ad_spend")} a`,
-      date: "a.date",
-      dims: { market: "a.market", ad_channel: "a.ad_channel" },
-    },
+  const fact = (key: "sales" | "ads"): FactSql => {
+    const src = LAYER.sources[key];
+    return { from: `\`${dataset}.${src.table}\``, date: src.date_column, dims: src.dimensions as Partial<Record<Dimension, string>> };
   };
+  return { sales: fact("sales"), ads: fact("ads") };
 }
 
 function dimExpr(f: FactSql, d: Dimension): string {
